@@ -1,1 +1,14 @@
-.vercel
+# .env file for local environment variables
+.env
+
+# Node.js modules
+node_modules/
+
+# Vercel deployment cache and local configuration
+.vercel/
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
