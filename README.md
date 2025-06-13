@@ -48,7 +48,7 @@ Experience SummUp live! You can access the deployed alpha version here:
 
 ## 🚀 How to Use
 
-1. Simply upload any type of file (except PDF, I'll try to add it in the future) like PDFs, DOCX, TXT, Images with texts.
+1. Simply upload any type of file like PDFs, PPTX, DOCX, TXT, Images with texts.
 2. click Summ It Up button.
 3. Result should appear instantly in the Summary section.
 
