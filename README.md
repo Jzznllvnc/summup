@@ -14,6 +14,7 @@ This project is currently in its alpha phase, focusing on core summarization fun
 
 * **Intelligent AI Summarization**: Leverages advanced artificial intelligence algorithms to generate accurate, context-aware, and relevant summaries from your uploaded content.
 * **Multi-Format Document Support**: Seamlessly handles a variety of document types, ensuring versatility for your summarization needs:
+    * **PPT (.ppt)**: Powerpoint presentations.
     * **PDF (.pdf)**: Ideal for academic papers, reports, and e-books.
     * **DOCX (.docx)**: Perfect for Microsoft Word documents.
     * **TXT (.txt)**: For plain text files of any length.
