@@ -27,8 +27,9 @@ body {
     background-color: var(--body-bg);
     color: var(--text-on-card);
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
     min-height: 100vh;
     box-sizing: border-box;
 }
@@ -356,6 +357,20 @@ button#summarize-btn.highlight-animation::before {
     text-align: center;
     font-weight: 500;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.footer {
+    color: var(--text-on-dark-bg);
+    text-align: center;
+    margin-top: 30px;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.footer p {
+    margin: 0;
+    color: #FFFFFF;
+    font-weight: 500;
 }
 
 /* Responsive adjustments */

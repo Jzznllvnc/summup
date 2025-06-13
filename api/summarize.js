@@ -2,16 +2,16 @@ const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@googl
 const formidable = require('formidable');
 const fs = require('fs/promises');
 const mammoth = require('mammoth');
-const CloudConvert = require('cloudconvert'); // NEW: Import CloudConvert SDK
+const CloudConvert = require('cloudconvert');
 
 // --- Configuration ---
 const API_KEY = process.env.GOOGLE_API_KEY;
-const CLOUDCONVERT_API_KEY = process.env.CLOUDCONVERT_API_KEY; // NEW: Get CloudConvert API key
+const CLOUDCONVERT_API_KEY = process.env.CLOUDCONVERT_API_KEY;
 
 if (!API_KEY) {
     console.error("GOOGLE_API_KEY environment variable is not set.");
 }
-if (!CLOUDCONVERT_API_KEY) { // NEW: Check CloudConvert API key
+if (!CLOUDCONVERT_API_KEY) {
     console.error("CLOUDCONVERT_API_KEY environment variable is not set.");
 }
 
@@ -61,7 +61,6 @@ async function fileToGenerativePart(filePath, mimeType) {
     }
 }
 
-// Initialize CloudConvert (once per function instance)
 // The CloudConvert SDK takes the API key directly
 const cloudConvert = new CloudConvert(CLOUDCONVERT_API_KEY); 
 
@@ -70,7 +69,7 @@ module.exports = async (req, res) => {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    if (!API_KEY || !CLOUDCONVERT_API_KEY) { // NEW: Check both API keys
+    if (!API_KEY || !CLOUDCONVERT_API_KEY) {
         return res.status(500).json({ error: 'Server configuration error: API Keys not set.' });
     }
 
@@ -175,15 +174,15 @@ module.exports = async (req, res) => {
 
         } else if (mimeType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
                    mimeType === 'application/vnd.ms-powerpoint') {
-            console.log('Processed PPT/PPTX file for CloudConvert conversion to PDF'); // Updated log
-            if (!CLOUDCONVERT_API_KEY) { // NEW Check for CloudConvert secret
+            console.log('Processed PPT/PPTX file for CloudConvert conversion to PDF');
+            if (!CLOUDCONVERT_API_KEY) {
                 await fs.unlink(fileInfo.filepath);
                 return res.status(500).json({ error: 'CloudConvert API key is not set. Cannot process PPT/PPTX files.' });
             }
 
             try {
                 // Convert PPTX to PDF using CloudConvert
-                const job = await cloudConvert.jobs.create({ // NEW: CloudConvert Job API call
+                const job = await cloudConvert.jobs.create({
                     "tasks": {
                         "upload_file": {
                             "operation": "import/upload"
@@ -192,7 +191,7 @@ module.exports = async (req, res) => {
                             "operation": "convert",
                             "input": "upload_file",
                             "output_format": "pdf",
-                            "filename": "output.pdf" // Specify a filename for the output
+                            "filename": "output.pdf"
                         },
                         "export_pdf": {
                             "operation": "export/url",
@@ -203,28 +202,19 @@ module.exports = async (req, res) => {
 
                 // Get the upload task and upload the file
                 const uploadTask = job.tasks.filter(task => task.name === "upload_file")[0];
-                // NEW: Read the file content into a Buffer
                 const pptxFileContentBuffer = await fs.readFile(fileInfo.filepath); 
-                // NEW: Pass the Buffer directly, and optionally, the original filename from formidable for CloudConvert
                 await cloudConvert.tasks.upload(uploadTask, pptxFileContentBuffer, fileInfo.originalFilename); 
-                //
 
-                // Wait for the conversion and export tasks to complete
                 const finishedJob = await cloudConvert.jobs.wait(job.id);
-
-                // Get the URL of the converted PDF file
                 const exportedPdfUrl = finishedJob.tasks.filter(task => task.operation === "export/url")[0].result.files[0].url;
-
-                // Download the PDF file content as a Buffer
-                const response = await fetch(exportedPdfUrl); // Use fetch API to download the PDF
+                const response = await fetch(exportedPdfUrl);
                 if (!response.ok) {
                     throw new Error(`Failed to download converted PDF: ${response.statusText}`);
                 }
-                const arrayBuffer = await response.arrayBuffer(); // MODIFIED: Get ArrayBuffer from fetch response
-                const pdfBuffer = Buffer.from(arrayBuffer);      // MODIFIED: Convert ArrayBuffer to Node.js Buffer
+                const arrayBuffer = await response.arrayBuffer();
+                const pdfBuffer = Buffer.from(arrayBuffer);
 
-                // Now, process the PDF Buffer with Gemini (similar to how other PDFs are handled)
-                const pdfPart = { // Prepare PDF as a part for Gemini
+                const pdfPart = {
                     inlineData: {
                         data: Buffer.from(pdfBuffer).toString('base64'),
                         mimeType: 'application/pdf'
@@ -251,12 +241,12 @@ module.exports = async (req, res) => {
 
                 const finalSummaryResponse = result.response;
                 const summary = finalSummaryResponse.text();
-                await fs.unlink(fileInfo.filepath); // Clean up the original PPTX file
+                await fs.unlink(fileInfo.filepath);
                 return res.status(200).json({ summary });
 
             } catch (convertError) {
                 console.error('Error converting PPT/PPTX with CloudConvert or processing PDF with Gemini:', convertError);
-                await fs.unlink(fileInfo.filepath); // Clean up original file
+                await fs.unlink(fileInfo.filepath);
                 return res.status(500).json({ error: 'Failed to convert PPT/PPTX to PDF or summarize it. ' + convertError.message });
             }
 
