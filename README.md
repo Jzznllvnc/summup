@@ -14,6 +14,7 @@ This project is currently in its alpha phase, focusing on core summarization fun
 
 * **Intelligent AI Summarization**: Leverages advanced artificial intelligence algorithms to generate accurate, context-aware, and relevant summaries from your uploaded content.
 * **Multi-Format Document Support**: Seamlessly handles a variety of document types, ensuring versatility for your summarization needs:
+    * **PPT (.ppt)**: Powerpoint presentations.
     * **PDF (.pdf)**: Ideal for academic papers, reports, and e-books.
     * **DOCX (.docx)**: Perfect for Microsoft Word documents.
     * **TXT (.txt)**: For plain text files of any length.
@@ -48,7 +49,7 @@ Experience SummUp live! You can access the deployed alpha version here:
 
 ## 🚀 How to Use
 
-1. Simply upload any type of file (except PDF, I'll try to add it in the future) like PDFs, DOCX, TXT, Images with texts.
+1. Simply upload any type of file like PDFs, PPTX, DOCX, TXT, Images with texts.
 2. click Summ It Up button.
 3. Result should appear instantly in the Summary section.
 
