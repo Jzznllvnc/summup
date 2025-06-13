@@ -30,7 +30,7 @@ This project is currently in its alpha phase, focusing on core summarization fun
     * JavaScript (ES6+)
     * Node.js
 * **Backend/API**:
-    * Google API (for AI model integration)
+    * Gemini AI API (for AI model integration)
 * **Development Tools**:
     * VS Code (Primary IDE)
     * Git & GitHub (Version Control)
