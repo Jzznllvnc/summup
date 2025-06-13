@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const summarizeBtn = document.getElementById('summarize-btn');
     const removeFileBtn = document.getElementById('remove-file-btn');
     const loadingSpinner = document.getElementById('loading-spinner');
+    const pptLoadingMessage = document.getElementById('ppt-loading-message'); // NEW
     const summaryOutput = document.getElementById('summary-output');
     const summaryTextP = summaryOutput.querySelector('p');
     const copySummaryBtn = document.getElementById('copy-summary-btn');
@@ -23,10 +24,17 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryTextP.style.textAlign = 'center';
         errorMessage.classList.add('error-hidden');
         summarizeBtn.classList.remove('highlight-animation');
+        
+        // NEW: Show specific message for PPT/PPTX files
+        if (selectedFile && (selectedFile.type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+                             selectedFile.type === 'application/vnd.ms-powerpoint')) {
+            pptLoadingMessage.classList.remove('loading-message-hidden');
+        }
     };
 
     const hideLoading = () => {
         loadingSpinner.classList.add('spinner-hidden');
+        pptLoadingMessage.classList.add('loading-message-hidden'); // NEW: Hide message when loading finishes
         summarizeBtn.disabled = !selectedFile;
         fileInput.disabled = false;
         removeFileBtn.disabled = !selectedFile;
@@ -48,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryTextP.style.textAlign = 'center';
         copySummaryBtn.style.display = 'none';
         summarizeBtn.classList.remove('highlight-animation');
+        pptLoadingMessage.classList.add('loading-message-hidden'); // NEW: Hide message on error
     };
 
     const clearError = () => {
@@ -67,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryTextP.style.textAlign = 'center';
         copySummaryBtn.style.display = 'none';
         summarizeBtn.classList.remove('highlight-animation');
+        pptLoadingMessage.classList.add('loading-message-hidden'); // NEW: Hide message on reset
     };
 
     // Event listener for file input change

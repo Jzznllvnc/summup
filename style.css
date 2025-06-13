@@ -227,12 +227,10 @@ button#summarize-btn::before {
     z-index: -1;
 }
 
-/* This class will trigger the animation */
 button#summarize-btn.highlight-animation::before {
     animation: slideHighlight 1.2s linear infinite ;
 }
 
-/* Define the animation keyframes */
 @keyframes slideHighlight {
     from {
         left: -100%;
@@ -325,7 +323,18 @@ button#summarize-btn.highlight-animation::before {
     width: 35px;
     height: 35px;
     animation: spin 1s linear infinite;
-    margin: 25px auto;
+    margin: 25px auto 15px auto;
+}
+
+.loading-message-hidden {
+    display: none;
+}
+
+#ppt-loading-message {
+    color: var(--text-subtle-on-card);
+    font-size: 0.9em;
+    margin-top: 10px;
+    text-align: center;
 }
 
 @keyframes spin {
@@ -333,7 +342,6 @@ button#summarize-btn.highlight-animation::before {
     100% { transform: rotate(360deg); }
 }
 
-/* Error Message */
 .error-hidden {
     display: none;
 }

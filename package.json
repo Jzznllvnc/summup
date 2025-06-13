@@ -11,8 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "@google/generative-ai": "^0.11.0",
+    "cloudconvert": "^3.0.0",
     "formidable": "^3.5.1",
-    "mammoth": "^1.7.1",
-    "pptx-text-parser": "^1.0.0"
+    "mammoth": "^1.7.1"
   }
 }
