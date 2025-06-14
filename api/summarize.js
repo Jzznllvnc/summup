@@ -1,6 +1,6 @@
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
 const formidable = require('formidable');
-const fs = require('fs/promises'); // Using fs.promises for async operations
+const fs = require('fs/promises');
 const mammoth = require('mammoth');
 const CloudConvert = require('cloudconvert');
 
