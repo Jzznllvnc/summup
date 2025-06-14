@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Get DOM elements
+
     const fileInput = document.getElementById('file-upload');
     const fileNameSpan = document.getElementById('file-name');
     const summarizeBtn = document.getElementById('summarize-btn');
@@ -10,17 +10,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const summaryTextP = summaryOutput.querySelector('p');
     const copySummaryBtn = document.getElementById('copy-summary-btn');
     const errorMessage = document.getElementById('error-message');
-
+    const copyTextSpan = document.getElementById('copy-text-span'); 
+    
     let selectedFile = null;
 
-    // Helper functions to manage UI state
     const showLoading = () => {
         loadingSpinner.classList.remove('spinner-hidden');
         summarizeBtn.disabled = true;
         fileInput.disabled = true;
-        removeFileBtn.disabled = true;
+        removeFileBtn.style.display = 'none';
         copySummaryBtn.disabled = true;
-        summaryTextP.textContent = 'Summarizing your document...';
+        if (copyTextSpan) {
+            copyTextSpan.style.display = 'none';
+        }
+        copySummaryBtn.style.display = 'none';
+        summaryTextP.textContent = 'Summarizing your document';
+        summaryTextP.classList.add('animating-dots');
         summaryTextP.style.textAlign = 'center';
         errorMessage.classList.add('error-hidden');
         summarizeBtn.classList.remove('highlight-animation');
@@ -36,16 +41,24 @@ document.addEventListener('DOMContentLoaded', () => {
         pptLoadingMessage.classList.add('loading-message-hidden');
         summarizeBtn.disabled = !selectedFile;
         fileInput.disabled = false;
-        removeFileBtn.disabled = !selectedFile;
+        removeFileBtn.style.display = selectedFile ? 'block' : 'none';
         copySummaryBtn.disabled = false;
+        summaryTextP.classList.remove('animating-dots');
     };
 
     const showSummary = (summary) => {
         summaryTextP.textContent = summary;
         summaryTextP.style.textAlign = 'justify';
-        copySummaryBtn.style.display = 'block';
-        copySummaryBtn.innerHTML = '<i class="fas fa-copy"></i>';
+        copySummaryBtn.style.display = 'flex';
+        copySummaryBtn.innerHTML = '<span id="copy-text-span">Copy All</span><i class="fas fa-copy"></i>';
+        
+        const currentCopyTextSpan = copySummaryBtn.querySelector('#copy-text-span');
+        if (currentCopyTextSpan) {
+            currentCopyTextSpan.textContent = 'Copy All';
+            currentCopyTextSpan.style.display = 'inline-block';
+        }
         copySummaryBtn.classList.remove('copied');
+        summaryTextP.classList.remove('animating-dots');
     };
 
     const showError = (message) => {
@@ -56,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         copySummaryBtn.style.display = 'none';
         summarizeBtn.classList.remove('highlight-animation');
         pptLoadingMessage.classList.add('loading-message-hidden');
+        summaryTextP.classList.remove('animating-dots');
     };
 
     const clearError = () => {
@@ -63,19 +77,20 @@ document.addEventListener('DOMContentLoaded', () => {
         errorMessage.textContent = '';
     };
 
-    // Function to reset file input state
     const resetFileInput = () => {
         selectedFile = null;
         fileInput.value = '';
         fileNameSpan.textContent = 'No file chosen';
         summarizeBtn.disabled = true;
         removeFileBtn.classList.remove('visible');
+        removeFileBtn.style.display = 'none';
         clearError();
         summaryTextP.textContent = 'Your summarized content will appear here.';
         summaryTextP.style.textAlign = 'center';
         copySummaryBtn.style.display = 'none';
         summarizeBtn.classList.remove('highlight-animation');
-        pptLoadingMessage.classList.add('loading-message-hidden'); 
+        pptLoadingMessage.classList.add('loading-message-hidden');
+        summaryTextP.classList.remove('animating-dots');
     };
 
     // Event listener for file input change
@@ -85,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fileNameSpan.textContent = selectedFile.name;
             summarizeBtn.disabled = false;
             removeFileBtn.classList.add('visible');
+            removeFileBtn.style.display = 'block';
             clearError();
             summaryTextP.textContent = 'Your summarized content will appear here.';
             copySummaryBtn.style.display = 'none';
@@ -94,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Event listener for remove file button click
     removeFileBtn.addEventListener('click', () => {
         resetFileInput();
     });
@@ -108,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         summarizeBtn.classList.remove('highlight-animation');
         showLoading();
         clearError();
-
+        
         const formData = new FormData();
         formData.append('file', selectedFile);
 
@@ -138,15 +153,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Event listener for copy summary button click
     copySummaryBtn.addEventListener('click', async () => {
         const summaryText = summaryOutput.querySelector('p').textContent;
+        const currentCopyTextSpan = copySummaryBtn.querySelector('#copy-text-span'); 
         try {
             await navigator.clipboard.writeText(summaryText);
-            copySummaryBtn.innerHTML = '<i class="fas fa-check"></i>';
+            copySummaryBtn.querySelector('i').classList.remove('fa-copy');
+            copySummaryBtn.querySelector('i').classList.add('fa-check');
+            if (currentCopyTextSpan) {
+                currentCopyTextSpan.textContent = 'Copied!';
+            }
             copySummaryBtn.classList.add('copied');
             setTimeout(() => {
-                copySummaryBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                copySummaryBtn.querySelector('i').classList.remove('fa-check');
+                copySummaryBtn.querySelector('i').classList.add('fa-copy');
+                if (currentCopyTextSpan) {
+                    currentCopyTextSpan.textContent = 'Copy All';
+                }
                 copySummaryBtn.classList.remove('copied');
             }, 2000);
         } catch (err) {
