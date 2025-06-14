@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let selectedFile = null;
 
-    const MAX_FILE_SIZE_MB_FRONTEND = 11;
+    const MAX_FILE_SIZE_MB_FRONTEND = 21;
     const MAX_FILE_SIZE_BYTES_FRONTEND = MAX_FILE_SIZE_MB_FRONTEND * 1024 * 1024;
 
 
