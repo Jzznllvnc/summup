@@ -8,6 +8,7 @@ const CloudConvert = require('cloudconvert');
 const API_KEY = process.env.GOOGLE_API_KEY;
 const CLOUDCONVERT_API_KEY = process.env.CLOUDCONVERT_API_KEY;
 
+// Log missing API keys (for development/debugging)
 if (!API_KEY) {
     console.error("GOOGLE_API_KEY environment variable is not set.");
 }
@@ -61,23 +62,54 @@ async function fileToGenerativePart(filePath, mimeType) {
     }
 }
 
-// The CloudConvert SDK takes the API key directly
 const cloudConvert = new CloudConvert(CLOUDCONVERT_API_KEY); 
 
+// --- Define Backend-Side Specific Limits (in MB) ---
+const BACKEND_FORMIDABLE_MAX_MB = 200;
+const GEMINI_IMAGE_PDF_MAX_MB = 45;
+const CLOUDCONVERT_MAX_MB = 100;
+
+
 module.exports = async (req, res) => {
+    // Set response headers to allow CORS (important for Vercel deployment)
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Adjust to your frontend domain in production
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
+    // Check if API keys are set
     if (!API_KEY || !CLOUDCONVERT_API_KEY) {
         return res.status(500).json({ error: 'Server configuration error: API Keys not set.' });
     }
 
-    const form = new formidable.IncomingForm({ multiples: false });
+    const form = new formidable.IncomingForm({
+        multiples: false, // Expect only one file
+        maxFileSize: BACKEND_FORMIDABLE_MAX_MB * 1024 * 1024,
+        uploadDir: require('os').tmpdir(), 
+        keepExtensions: true,
+    });
+
+    let uploadedFile = null;
 
     try {
-        const [fields, files] = await form.parse(req);
-        const uploadedFile = files.file;
+        // Use promise-based parsing for formidable
+        const [fields, files] = await new Promise((resolve, reject) => {
+            form.parse(req, (err, fields, files) => {
+                if (err) {
+                    return reject(err);
+                }
+                resolve([fields, files]);
+            });
+        });
+        
+        uploadedFile = files.file;
 
         if (!uploadedFile || uploadedFile.length === 0) {
             return res.status(400).json({ error: 'No file uploaded.' });
@@ -86,6 +118,11 @@ module.exports = async (req, res) => {
         const fileInfo = Array.isArray(uploadedFile) ? uploadedFile[0] : uploadedFile;
         let fileContentForAI; 
         let mimeType = fileInfo.mimetype;
+
+        if (fileInfo.size > BACKEND_FORMIDABLE_MAX_MB * 1024 * 1024) {
+             await fs.unlink(fileInfo.filepath).catch(err => console.error('Error cleaning up temp file:', err));
+             return res.status(413).json({ error: `File too large for server processing (max ${BACKEND_FORMIDABLE_MAX_MB}MB). Please compress it.` });
+        }
 
         if (mimeType.startsWith('text/')) {
             fileContentForAI = await fs.readFile(fileInfo.filepath, 'utf8');
@@ -110,10 +147,16 @@ module.exports = async (req, res) => {
 
             const response = result.response;
             const summary = response.text();
-            await fs.unlink(fileInfo.filepath);
+            await fs.unlink(fileInfo.filepath).catch(err => console.error('Error cleaning up temp file:', err)); // Clean up temp file
             return res.status(200).json({ summary });
 
         } else if (mimeType === 'application/pdf' || mimeType.startsWith('image/')) {
+            // Check specific Gemini limit for images/PDFs before reading into memory and encoding
+            if (fileInfo.size > GEMINI_IMAGE_PDF_MAX_MB * 1024 * 1024) {
+                await fs.unlink(fileInfo.filepath).catch(err => console.error('Error cleaning up temp file:', err)); // Clean up temp file
+                return res.status(413).json({ error: `Image/PDF file too large for AI processing (max ${GEMINI_IMAGE_PDF_MAX_MB}MB). Please compress it.` });
+            }
+
             const imagePart = await fileToGenerativePart(fileInfo.filepath, mimeType);
 
             let summarizationPrompt = `
@@ -136,7 +179,7 @@ module.exports = async (req, res) => {
 
             const response = result.response;
             const summary = response.text();
-            await fs.unlink(fileInfo.filepath);
+            await fs.unlink(fileInfo.filepath).catch(err => console.error('Error cleaning up temp file:', err));
             return res.status(200).json({ summary });
 
         } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
@@ -145,7 +188,7 @@ module.exports = async (req, res) => {
             fileContentForAI = text;
 
             if (!fileContentForAI) {
-                await fs.unlink(fileInfo.filepath);
+                await fs.unlink(fileInfo.filepath).catch(err => console.error('Error cleaning up temp file:', err));
                 return res.status(400).json({ error: 'Could not extract text from DOCX file. It might be empty or malformed.' });
             }
 
@@ -169,14 +212,20 @@ module.exports = async (req, res) => {
 
             const response = result.response;
             const summary = response.text();
-            await fs.unlink(fileInfo.filepath);
+            await fs.unlink(fileInfo.filepath).catch(err => console.error('Error cleaning up temp file:', err));
             return res.status(200).json({ summary });
 
         } else if (mimeType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
                    mimeType === 'application/vnd.ms-powerpoint') {
             console.log('Processed PPT/PPTX file for CloudConvert conversion to PDF');
+
+            if (fileInfo.size > CLOUDCONVERT_MAX_MB * 1024 * 1024) {
+                await fs.unlink(fileInfo.filepath).catch(err => console.error('Error cleaning up temp file:', err));
+                return res.status(413).json({ error: `PPT/PPTX file too large for conversion (max ${CLOUDCONVERT_MAX_MB}MB). Please compress it.` });
+            }
+
             if (!CLOUDCONVERT_API_KEY) {
-                await fs.unlink(fileInfo.filepath);
+                await fs.unlink(fileInfo.filepath).catch(err => console.error('Error cleaning up temp file:', err));
                 return res.status(500).json({ error: 'CloudConvert API key is not set. Cannot process PPT/PPTX files.' });
             }
 
@@ -214,6 +263,11 @@ module.exports = async (req, res) => {
                 const arrayBuffer = await response.arrayBuffer();
                 const pdfBuffer = Buffer.from(arrayBuffer);
 
+                if (pdfBuffer.length > GEMINI_IMAGE_PDF_MAX_MB * 1024 * 1024) {
+                    await fs.unlink(fileInfo.filepath).catch(err => console.error('Error cleaning up temp file:', err));
+                    return res.status(413).json({ error: `Converted PDF file is too large for AI processing (max ${GEMINI_IMAGE_PDF_MAX_MB}MB). Please use a smaller PPT/PPTX file.` });
+                }
+
                 const pdfPart = {
                     inlineData: {
                         data: Buffer.from(pdfBuffer).toString('base64'),
@@ -241,25 +295,31 @@ module.exports = async (req, res) => {
 
                 const finalSummaryResponse = result.response;
                 const summary = finalSummaryResponse.text();
-                await fs.unlink(fileInfo.filepath);
+                await fs.unlink(fileInfo.filepath).catch(err => console.error('Error cleaning up temp file:', err));
                 return res.status(200).json({ summary });
 
             } catch (convertError) {
                 console.error('Error converting PPT/PPTX with CloudConvert or processing PDF with Gemini:', convertError);
-                await fs.unlink(fileInfo.filepath);
+                await fs.unlink(fileInfo.filepath).catch(err => console.error('Error cleaning up temp file:', err));
                 return res.status(500).json({ error: 'Failed to convert PPT/PPTX to PDF or summarize it. ' + convertError.message });
             }
 
         } else {
-            await fs.unlink(fileInfo.filepath);
+            await fs.unlink(fileInfo.filepath).catch(err => console.error('Error cleaning up temp file:', err));
             return res.status(400).json({ error: `Unsupported file type: ${mimeType}. Please upload a PDF, DOCX, TXT, or common image format.` });
         }
 
     } catch (error) {
-        console.error('Serverless function top-level error:', error);
-        if (req.files && req.files.file && req.files.file.filepath) {
-            await fs.unlink(req.files.file.filepath).catch(err => console.error('Error cleaning up temp file:', err));
+        console.error('Serverless function top-level error (formidable or unhandled):', error);
+        
+        if (uploadedFile && uploadedFile.filepath) {
+            await fs.unlink(uploadedFile.filepath).catch(err => console.error('Error cleaning up temp file:', err));
         }
-        res.status(500).json({ error: 'Failed to summarize document: ' + error.message });
+        
+        if (error.message && error.message.includes('maxFileSize exceeded')) {
+            return res.status(413).json({ error: `File too large for server processing (max ${BACKEND_FORMIDABLE_MAX_MB}MB). Please compress it.` });
+        }
+        
+        res.status(500).json({ error: 'Failed to summarize document: An unexpected server error occurred.' + (error.message ? ` Details: ${error.message}` : '') });
     }
 };
