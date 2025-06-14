@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let selectedFile = null;
 
-    const MAX_FILE_SIZE_MB_FRONTEND = 5.5;
+    const MAX_FILE_SIZE_MB_FRONTEND = 4;
     const MAX_FILE_SIZE_BYTES_FRONTEND = MAX_FILE_SIZE_MB_FRONTEND * 1024 * 1024;
 
 
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
                 } catch (jsonParseError) {
                     if (response.status === 413 || errorText.includes("Request Entity Too Large")) {
-                        throw new Error(`Request Entity Too Large`);
+                        throw new Error(`File size too large, please compress or upload files 4MB below.`);
                     } else {
                         throw new Error(`Server responded with non-JSON or status ${response.status}. Details: ${errorText.substring(0, 100)}...`);
                     }
