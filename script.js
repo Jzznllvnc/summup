@@ -18,10 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Based on your system's explanation, Gemini's direct input limit for Images/PDFs is ~50MB.
     // This is the most restrictive practical limit for AI processing.
     // Vercel's infrastructure limit for direct file uploads on free tier is ~4.5MB.
-    // We'll use 45MB here as the client-side limit, which aligns with Gemini.
-    // The backend will catch Vercel's 4.5MB limit.
-    const MAX_FILE_SIZE_MB_FRONTEND = 45; // Setting to 45MB for client-side check, below Gemini's 50MB for safety.
-    const MAX_FILE_SIZE_BYTES_FRONTEND = MAX_FILE_SIZE_MB_FRONTEND * 1024 * 1024; // Convert to bytes
+    // We'll use 4MB here as the client-side limit to prevent hitting Vercel's 4.5MB limit.
+    const MAX_FILE_SIZE_MB_FRONTEND = 4; // Set to 4MB to prevent Vercel's infrastructure 4.5MB limit
+    const MAX_FILE_SIZE_BYTES_FRONTEND = MAX_FILE_SIZE_MB_FRONTEND * 1024 * 1024;
 
 
     const showLoading = () => {
@@ -72,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showError = (message) => {
-        // Customize error messages based on common backend responses or known limits
+        // --- Refined error message logic ---
         if (message.includes("File too large for server processing")) {
             errorMessage.textContent = `Error: File too large for server. Please compress it or upload a smaller file.`;
         } else if (message.includes("Image/PDF file too large for AI processing")) {
@@ -82,10 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (message.includes("Converted PDF file is too large for AI processing")) {
              errorMessage.textContent = `Error: Converted file is too large for AI processing. Please use a smaller PPT/PPTX file.`;
         }
-        // This is for Vercel's infrastructure-level 413, or other non-JSON responses
-        else if (message.includes("Unexpected token 'R'") || message.includes("status of 413")) {
-            // This happens when Vercel's edge network rejects a too-large request (e.g., >4.5MB on free tier)
-            errorMessage.textContent = `Error: File size exceeds Vercel's server limit. Please upload a file smaller than ~4.5MB, or try another file type.`;
+        // Specific check for Vercel's infrastructure 413 error message
+        else if (message.includes("Request Entity Too Large") || message.includes("status of 413")) {
+            errorMessage.textContent = `Error: File size exceeds Vercel's server limit (max ~4.5MB). Please upload a smaller file.`;
         }
         else {
             errorMessage.textContent = `Error: ${message}`;
@@ -126,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.target.files.length > 0) {
             selectedFile = event.target.files[0];
 
-            // --- Frontend Client-Side File Size Check ---
+            // --- Frontend Client-Side File Size Check (Prevent sending to Vercel's 4.5MB limit) ---
             if (selectedFile.size > MAX_FILE_SIZE_BYTES_FRONTEND) {
                 showError(`File size exceeds the client-side limit of ${MAX_FILE_SIZE_MB_FRONTEND}MB. Please compress it or use a smaller file.`);
                 resetFileInput();
@@ -170,18 +168,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                // Try to parse JSON error first
+                // Attempt to get text from response first if JSON parsing fails
+                let errorText = await response.text(); // Get raw text to check for "Request Entity Too Large"
+                
                 try {
-                    const errorData = await response.json();
-                    // If backend sends a specific error.error message, use that
+                    // Try to parse as JSON if it looks like JSON
+                    const errorData = JSON.parse(errorText); // Use JSON.parse on the text
                     throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
                 } catch (jsonParseError) {
-                    // This catch block handles cases where the server sends non-JSON
-                    // (e.g., an HTML error page from Vercel's infrastructure for 413)
-                    if (response.status === 413) {
-                         throw new Error(`status of 413`); // Use this specific string to trigger custom message
+                    // If JSON parsing fails (because it was plain text or HTML from Vercel)
+                    // and the status is 413, or the text contains the specific Vercel message
+                    if (response.status === 413 || errorText.includes("Request Entity Too Large")) {
+                        throw new Error(`Request Entity Too Large`); // Throw a recognizable error for showError
                     } else {
-                        throw new Error(`Server responded with non-JSON or status ${response.status}.`);
+                        // Fallback for other non-JSON errors
+                        throw new Error(`Server responded with non-JSON or status ${response.status}. Details: ${errorText.substring(0, 100)}...`);
                     }
                 }
             }
@@ -195,7 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Summarization failed:', error);
-            // Pass the error message to showError to handle custom display
             showError(error.message || 'An unexpected error occurred during summarization.');
         } finally {
             hideLoading();
