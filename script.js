@@ -15,11 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedFile = null;
 
     const MAX_FILE_SIZE_MB_FRONTEND = 4; // Set to 4MB to prevent Vercel's infrastructure 4.5MB limit
-    const MAX_FILE_SIZE_BYTES_FRONTEND = MAX_FILE_SIZE_MB_FRONTEND * 1024 * 1024; // Convert to bytes
+    const MAX_FILE_SIZE_BYTES_FRONTEND = MAX_FILE_SIZE_MB_FRONTEND * 1024 * 1024;
 
 
     const showLoading = () => {
-        // ... (rest of showLoading function - no changes needed here) ...
         loadingSpinner.classList.remove('spinner-hidden');
         summarizeBtn.disabled = true;
         fileInput.disabled = true;
@@ -42,7 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const hideLoading = () => {
-        // ... (rest of hideLoading function - no changes needed here) ...
         loadingSpinner.classList.add('spinner-hidden');
         pptLoadingMessage.classList.add('loading-message-hidden');
         summarizeBtn.disabled = !selectedFile;
@@ -53,7 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showSummary = (summary) => {
-        // ... (rest of showSummary function - no changes needed here) ...
         summaryTextP.textContent = summary;
         summaryTextP.style.textAlign = 'justify';
         copySummaryBtn.style.display = 'flex';
@@ -69,36 +66,34 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showError = (message) => {
-        console.log("showError called with message:", message); // ADD THIS LINE for debugging
+        console.log("showError called with message:", message); // Debugging
         errorMessage.textContent = `Error: ${message}`;
-        errorMessage.classList.remove('error-hidden'); // This makes the error message visible
-        // You might want to briefly highlight it or ensure it stays visible for a few seconds
-        // For example, if you want it to fade after 5 seconds, you could add:
-        // setTimeout(() => { errorMessage.classList.add('error-hidden'); }, 5000);
-
-        summaryTextP.textContent = 'Your summarized content will appear here.';
-        summaryTextP.style.textAlign = 'center';
-        copySummaryBtn.style.display = 'none';
-        summarizeBtn.classList.remove('highlight-animation');
-        pptLoadingMessage.classList.add('loading-message-hidden');
-        summaryTextP.classList.remove('animating-dots');
+        errorMessage.classList.remove('error-hidden'); // Make error message visible
+        
+        // No need to clear other content immediately
+        // summaryTextP.textContent = 'Your summarized content will appear here.'; // Keep previous summary if any
+        // summaryTextP.style.textAlign = 'center';
+        // copySummaryBtn.style.display = 'none';
+        // summarizeBtn.classList.remove('highlight-animation');
+        // pptLoadingMessage.classList.add('loading-message-hidden');
+        // summaryTextP.classList.remove('animating-dots');
     };
 
     const clearError = () => {
-        console.log("clearError called."); // ADD THIS LINE for debugging
+        console.log("clearError called."); // Debugging
         errorMessage.classList.add('error-hidden');
         errorMessage.textContent = '';
     };
 
     const resetFileInput = () => {
-        console.log("resetFileInput called."); // ADD THIS LINE for debugging
+        console.log("resetFileInput called."); // Debugging
         selectedFile = null;
         fileInput.value = '';
         fileNameSpan.textContent = 'No file chosen';
         summarizeBtn.disabled = true;
         removeFileBtn.classList.remove('visible');
         removeFileBtn.style.display = 'none';
-        clearError(); // This calls clearError
+        clearError(); // This will clear any error message when the input is reset normally
         summaryTextP.textContent = 'Your summarized content will appear here.';
         summaryTextP.style.textAlign = 'center';
         copySummaryBtn.style.display = 'none';
@@ -109,49 +104,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event listener for file input change
     fileInput.addEventListener('change', (event) => {
-        console.log('File input change event triggered.'); // ADD THIS
+        console.log('File input change event triggered.'); // Debugging
         if (event.target.files.length > 0) {
             selectedFile = event.target.files[0];
-            console.log('File selected:', selectedFile.name, 'Size:', selectedFile.size, 'bytes'); // ADD THIS
-            console.log('MAX_FILE_SIZE_BYTES_FRONTEND:', MAX_FILE_SIZE_BYTES_FRONTEND); // ADD THIS
+            console.log('File selected:', selectedFile.name, 'Size:', selectedFile.size, 'bytes'); // Debugging
+            console.log('MAX_FILE_SIZE_BYTES_FRONTEND:', MAX_FILE_SIZE_BYTES_FRONTEND); // Debugging
 
             // --- Frontend Client-Side File Size Check ---
             if (selectedFile.size > MAX_FILE_SIZE_BYTES_FRONTEND) {
-                console.warn('File too large, client-side check hit! Displaying error.'); // ADD THIS
+                console.warn('File too large, client-side check hit! Displaying error.'); // Debugging
                 showError(`File size exceeds the client-side limit of ${MAX_FILE_SIZE_MB_FRONTEND}MB. Please compress it or use a smaller file.`);
-                resetFileInput(); // This calls clearError, which might clear the error immediately
+                
+                // --- CRITICAL CHANGE: DO NOT CALL resetFileInput() HERE ---
+                // We want the error to stay visible, and not clear the file name.
+                // The user needs to see the error and then manually clear the input if they choose.
+                
+                // OPTION 1: Just show error, keep file name, disable summarize button
+                fileNameSpan.textContent = selectedFile.name; // Keep the file name displayed
+                summarizeBtn.disabled = true; // Disable summarize button as file is too large
+                removeFileBtn.style.display = 'block'; // Keep remove button visible
+                
                 return; // Stop further processing
             }
 
-            console.log('File size acceptable on client-side.'); // ADD THIS
+            console.log('File size acceptable on client-side.'); // Debugging
             fileNameSpan.textContent = selectedFile.name;
             summarizeBtn.disabled = false;
             removeFileBtn.classList.add('visible');
             removeFileBtn.style.display = 'block';
-            clearError(); // This might be clearing the error too soon if showerror was called
+            clearError(); // Clear any previous errors if a valid file is selected
             summaryTextP.textContent = 'Your summarized content will appear here.';
             copySummaryBtn.style.display = 'none';
             summarizeBtn.classList.add('highlight-animation');
         } else {
-            console.log('No file chosen or file selection cancelled.'); // ADD THIS
+            console.log('No file chosen or file selection cancelled.'); // Debugging
             resetFileInput();
         }
     });
 
     removeFileBtn.addEventListener('click', () => {
         resetFileInput();
+        clearError(); // Ensure clearError is called when remove file is clicked manually
     });
 
     // Event listener for summarize button click
     summarizeBtn.addEventListener('click', async () => {
-        // ... (rest of summarizeBtn.addEventListener - no changes needed here related to the current issue) ...
         if (!selectedFile) {
             showError('Please select a file first.');
             return;
         }
         summarizeBtn.classList.remove('highlight-animation');
         showLoading();
-        clearError();
+        clearError(); // Clear error before new summarization attempt
         
         const formData = new FormData();
         formData.append('file', selectedFile);
@@ -163,14 +167,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                let errorText = await response.text();
+                let errorText = await response.text(); 
                 
                 try {
-                    const errorData = JSON.parse(errorText);
+                    const errorData = JSON.parse(errorText); 
                     throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
                 } catch (jsonParseError) {
                     if (response.status === 413 || errorText.includes("Request Entity Too Large")) {
-                        throw new Error(`Request Entity Too Large`);
+                        throw new Error(`Request Entity Too Large`); // Trigger custom Vercel error message
                     } else {
                         throw new Error(`Server responded with non-JSON or status ${response.status}. Details: ${errorText.substring(0, 100)}...`);
                     }
@@ -193,7 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     copySummaryBtn.addEventListener('click', async () => {
-        // ... (rest of copySummaryBtn.addEventListener - no changes needed here) ...
         const summaryText = summaryOutput.querySelector('p').textContent;
         const currentCopyTextSpan = copySummaryBtn.querySelector('#copy-text-span'); 
         try {
@@ -219,5 +222,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    resetFileInput();
+    resetFileInput(); // Initial call to set default state
 });
