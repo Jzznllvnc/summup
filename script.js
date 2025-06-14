@@ -14,16 +14,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let selectedFile = null;
 
-    // --- Define Frontend File Size Limit ---
-    // Based on your system's explanation, Gemini's direct input limit for Images/PDFs is ~50MB.
-    // This is the most restrictive practical limit for AI processing.
-    // Vercel's infrastructure limit for direct file uploads on free tier is ~4.5MB.
-    // We'll use 4MB here as the client-side limit to prevent hitting Vercel's 4.5MB limit.
     const MAX_FILE_SIZE_MB_FRONTEND = 4; // Set to 4MB to prevent Vercel's infrastructure 4.5MB limit
-    const MAX_FILE_SIZE_BYTES_FRONTEND = MAX_FILE_SIZE_MB_FRONTEND * 1024 * 1024;
+    const MAX_FILE_SIZE_BYTES_FRONTEND = MAX_FILE_SIZE_MB_FRONTEND * 1024 * 1024; // Convert to bytes
 
 
     const showLoading = () => {
+        // ... (rest of showLoading function - no changes needed here) ...
         loadingSpinner.classList.remove('spinner-hidden');
         summarizeBtn.disabled = true;
         fileInput.disabled = true;
@@ -46,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const hideLoading = () => {
+        // ... (rest of hideLoading function - no changes needed here) ...
         loadingSpinner.classList.add('spinner-hidden');
         pptLoadingMessage.classList.add('loading-message-hidden');
         summarizeBtn.disabled = !selectedFile;
@@ -56,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showSummary = (summary) => {
+        // ... (rest of showSummary function - no changes needed here) ...
         summaryTextP.textContent = summary;
         summaryTextP.style.textAlign = 'justify';
         copySummaryBtn.style.display = 'flex';
@@ -71,25 +69,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showError = (message) => {
-        // --- Refined error message logic ---
-        if (message.includes("File too large for server processing")) {
-            errorMessage.textContent = `Error: File too large for server. Please compress it or upload a smaller file.`;
-        } else if (message.includes("Image/PDF file too large for AI processing")) {
-             errorMessage.textContent = `Error: Image/PDF file too large for AI processing (max ${MAX_FILE_SIZE_MB_FRONTEND}MB). Please compress it.`;
-        } else if (message.includes("PPT/PPTX file too large for conversion")) {
-             errorMessage.textContent = `Error: PPT/PPTX file too large for conversion. Please use a smaller file.`;
-        } else if (message.includes("Converted PDF file is too large for AI processing")) {
-             errorMessage.textContent = `Error: Converted file is too large for AI processing. Please use a smaller PPT/PPTX file.`;
-        }
-        // Specific check for Vercel's infrastructure 413 error message
-        else if (message.includes("Request Entity Too Large") || message.includes("status of 413")) {
-            errorMessage.textContent = `Error: File size exceeds Vercel's server limit (max ~4.5MB). Please upload a smaller file.`;
-        }
-        else {
-            errorMessage.textContent = `Error: ${message}`;
-        }
+        console.log("showError called with message:", message); // ADD THIS LINE for debugging
+        errorMessage.textContent = `Error: ${message}`;
+        errorMessage.classList.remove('error-hidden'); // This makes the error message visible
+        // You might want to briefly highlight it or ensure it stays visible for a few seconds
+        // For example, if you want it to fade after 5 seconds, you could add:
+        // setTimeout(() => { errorMessage.classList.add('error-hidden'); }, 5000);
 
-        errorMessage.classList.remove('error-hidden');
         summaryTextP.textContent = 'Your summarized content will appear here.';
         summaryTextP.style.textAlign = 'center';
         copySummaryBtn.style.display = 'none';
@@ -99,18 +85,20 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const clearError = () => {
+        console.log("clearError called."); // ADD THIS LINE for debugging
         errorMessage.classList.add('error-hidden');
         errorMessage.textContent = '';
     };
 
     const resetFileInput = () => {
+        console.log("resetFileInput called."); // ADD THIS LINE for debugging
         selectedFile = null;
         fileInput.value = '';
         fileNameSpan.textContent = 'No file chosen';
         summarizeBtn.disabled = true;
         removeFileBtn.classList.remove('visible');
         removeFileBtn.style.display = 'none';
-        clearError();
+        clearError(); // This calls clearError
         summaryTextP.textContent = 'Your summarized content will appear here.';
         summaryTextP.style.textAlign = 'center';
         copySummaryBtn.style.display = 'none';
@@ -121,25 +109,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event listener for file input change
     fileInput.addEventListener('change', (event) => {
+        console.log('File input change event triggered.'); // ADD THIS
         if (event.target.files.length > 0) {
             selectedFile = event.target.files[0];
+            console.log('File selected:', selectedFile.name, 'Size:', selectedFile.size, 'bytes'); // ADD THIS
+            console.log('MAX_FILE_SIZE_BYTES_FRONTEND:', MAX_FILE_SIZE_BYTES_FRONTEND); // ADD THIS
 
-            // --- Frontend Client-Side File Size Check (Prevent sending to Vercel's 4.5MB limit) ---
+            // --- Frontend Client-Side File Size Check ---
             if (selectedFile.size > MAX_FILE_SIZE_BYTES_FRONTEND) {
+                console.warn('File too large, client-side check hit! Displaying error.'); // ADD THIS
                 showError(`File size exceeds the client-side limit of ${MAX_FILE_SIZE_MB_FRONTEND}MB. Please compress it or use a smaller file.`);
-                resetFileInput();
+                resetFileInput(); // This calls clearError, which might clear the error immediately
                 return; // Stop further processing
             }
 
+            console.log('File size acceptable on client-side.'); // ADD THIS
             fileNameSpan.textContent = selectedFile.name;
             summarizeBtn.disabled = false;
             removeFileBtn.classList.add('visible');
             removeFileBtn.style.display = 'block';
-            clearError();
+            clearError(); // This might be clearing the error too soon if showerror was called
             summaryTextP.textContent = 'Your summarized content will appear here.';
             copySummaryBtn.style.display = 'none';
             summarizeBtn.classList.add('highlight-animation');
         } else {
+            console.log('No file chosen or file selection cancelled.'); // ADD THIS
             resetFileInput();
         }
     });
@@ -150,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event listener for summarize button click
     summarizeBtn.addEventListener('click', async () => {
+        // ... (rest of summarizeBtn.addEventListener - no changes needed here related to the current issue) ...
         if (!selectedFile) {
             showError('Please select a file first.');
             return;
@@ -168,20 +163,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                // Attempt to get text from response first if JSON parsing fails
-                let errorText = await response.text(); // Get raw text to check for "Request Entity Too Large"
+                let errorText = await response.text();
                 
                 try {
-                    // Try to parse as JSON if it looks like JSON
-                    const errorData = JSON.parse(errorText); // Use JSON.parse on the text
+                    const errorData = JSON.parse(errorText);
                     throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
                 } catch (jsonParseError) {
-                    // If JSON parsing fails (because it was plain text or HTML from Vercel)
-                    // and the status is 413, or the text contains the specific Vercel message
                     if (response.status === 413 || errorText.includes("Request Entity Too Large")) {
-                        throw new Error(`Request Entity Too Large`); // Throw a recognizable error for showError
+                        throw new Error(`Request Entity Too Large`);
                     } else {
-                        // Fallback for other non-JSON errors
                         throw new Error(`Server responded with non-JSON or status ${response.status}. Details: ${errorText.substring(0, 100)}...`);
                     }
                 }
@@ -203,6 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     copySummaryBtn.addEventListener('click', async () => {
+        // ... (rest of copySummaryBtn.addEventListener - no changes needed here) ...
         const summaryText = summaryOutput.querySelector('p').textContent;
         const currentCopyTextSpan = copySummaryBtn.querySelector('#copy-text-span'); 
         try {
