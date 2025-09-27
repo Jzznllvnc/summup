@@ -54,7 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryTextP.textContent = summary;
         summaryTextP.style.textAlign = 'justify';
         copySummaryBtn.style.display = 'flex';
-        copySummaryBtn.innerHTML = '<span id="copy-text-span">Copy All</span><i class="fas fa-copy"></i>';
+        copySummaryBtn.innerHTML = '<span id="copy-text-span">Copy All</span><i data-lucide="copy"></i>';
+        lucide.createIcons();
         
         const currentCopyTextSpan = copySummaryBtn.querySelector('#copy-text-span');
         if (currentCopyTextSpan) {
@@ -66,19 +67,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showError = (message) => {
-        console.log("showError called with message:", message);
         errorMessage.textContent = `Error: ${message}`;
         errorMessage.classList.remove('error-hidden');
     };
 
     const clearError = () => {
-        console.log("clearError called.");
         errorMessage.classList.add('error-hidden');
         errorMessage.textContent = '';
     };
 
     const resetFileInput = () => {
-        console.log("resetFileInput called.");
         selectedFile = null;
         fileInput.value = '';
         fileNameSpan.textContent = 'No file chosen';
@@ -96,15 +94,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event listener for file input change
     fileInput.addEventListener('change', (event) => {
-        console.log('File input change event triggered.');
         if (event.target.files.length > 0) {
             selectedFile = event.target.files[0];
-            console.log('File selected:', selectedFile.name, 'Size:', selectedFile.size, 'bytes');
-            console.log('MAX_FILE_SIZE_BYTES_FRONTEND:', MAX_FILE_SIZE_BYTES_FRONTEND);
 
             // --- Frontend Client-Side File Size Check ---
             if (selectedFile.size > MAX_FILE_SIZE_BYTES_FRONTEND) {
-                console.warn('File too large, client-side check hit! Displaying error.');
                 showError(`File size exceeds the limit of ${MAX_FILE_SIZE_MB_FRONTEND}MB. Please compress it or use a smaller file.`);
 
                 fileNameSpan.textContent = selectedFile.name;
@@ -114,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            console.log('File size acceptable on client-side.');
             fileNameSpan.textContent = selectedFile.name;
             summarizeBtn.disabled = false;
             removeFileBtn.classList.add('visible');
@@ -124,7 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
             copySummaryBtn.style.display = 'none';
             summarizeBtn.classList.add('highlight-animation');
         } else {
-            console.log('No file chosen or file selection cancelled.');
             resetFileInput();
         }
     });
@@ -187,15 +179,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentCopyTextSpan = copySummaryBtn.querySelector('#copy-text-span'); 
         try {
             await navigator.clipboard.writeText(summaryText);
-            copySummaryBtn.querySelector('i').classList.remove('fa-copy');
-            copySummaryBtn.querySelector('i').classList.add('fa-check');
+            const icon = copySummaryBtn.querySelector('i');
+            icon.setAttribute('data-lucide', 'check');
+            lucide.createIcons();
             if (currentCopyTextSpan) {
                 currentCopyTextSpan.textContent = 'Copied!';
             }
             copySummaryBtn.classList.add('copied');
             setTimeout(() => {
-                copySummaryBtn.querySelector('i').classList.remove('fa-check');
-                copySummaryBtn.querySelector('i').classList.add('fa-copy');
+                icon.setAttribute('data-lucide', 'copy');
+                lucide.createIcons();
                 if (currentCopyTextSpan) {
                     currentCopyTextSpan.textContent = 'Copy All';
                 }
@@ -209,4 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     resetFileInput();
+    
+    // Initialize Lucide icons
+    lucide.createIcons();
 });

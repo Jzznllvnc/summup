@@ -180,7 +180,6 @@ module.exports = async (req, res) => {
             return res.status(200).json({ summary });
 
         } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-            console.log('Processed DOCX file');
             const { value: text } = await mammoth.extractRawText({ path: fileInfo.filepath });
             fileContentForAI = text;
 
@@ -214,7 +213,6 @@ module.exports = async (req, res) => {
 
         } else if (mimeType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
                    mimeType === 'application/vnd.ms-powerpoint') {
-            console.log('Processed PPT/PPTX file for CloudConvert conversion to PDF');
             // Check CloudConvert specific limit
             if (fileInfo.size > CLOUDCONVERT_MAX_MB * 1024 * 1024) {
                 await fs.unlink(fileInfo.filepath).catch(err => console.error('Error cleaning up temp file:', err));
