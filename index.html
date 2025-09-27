@@ -7,9 +7,12 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="icon" href="./image/logo.png" type="image/png">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.halo.min.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
     <script src="script.js" defer></script>
 </head>
-<body>
+<body id="vanta-bg">
 
     <div class="container">
         <div class="logo-container">
@@ -23,25 +26,33 @@
             <div class="file-input-wrapper">
                 <label for="file-upload" class="custom-file-upload">
                     <input type="file" id="file-upload" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png">
-                    <span><i data-lucide="upload"></i>&nbsp;&nbsp;Choose File</span>
+                    <span><i data-lucide="upload"></i>Choose File</span>
                 </label>
                 <span id="file-name">No file chosen</span>
                 <button id="remove-file-btn" class="remove-file-btn" aria-label="Remove selected file"><i data-lucide="x-circle"></i></button>
             </div>
         </div>
 
-        <button id="summarize-btn" disabled>Summ it Up!&nbsp;&nbsp;<i data-lucide="sparkles"></i></button>
+        <button id="summarize-btn" disabled>Summ it Up!<i data-lucide="sparkles"></i></button>
 
-        <div id="loading-spinner" class="spinner-hidden"></div>
-        <p id="ppt-loading-message" class="loading-message-hidden">PPT/PPTX files are being converted and may take some time. Please wait...</p>
+        <div id="ppt-loading-message" class="loading-message-hidden">
+            PowerPoint files take longer to process as they're converted to PDF first.
+        </div>
 
         <div class="summary-area">
             <h2>Summary:</h2>
             <div id="summary-output">
+                <button id="clear-summary-btn" class="clear-btn" aria-label="Clear summary" title="Clear">
+                    <span id="clear-text-span">Clear</span><i data-lucide="eraser"></i>
+                </button>
                 <button id="copy-summary-btn" class="copy-btn" aria-label="Copy summary" title="Copy">
                     <span id="copy-text-span">Copy All</span><i data-lucide="copy"></i>
                 </button>
-                <p>Your summarized content will appear here.</p>
+                <div id="ai-loader-container" class="ai-loader-hidden">
+                    <lottie-player id="ai-loader" src="css/AI-Loader.json" background="transparent" speed="1" loop></lottie-player>
+                    <p id="loading-text">Summarizing your document</p>
+                </div>
+                <p id="summary-text">Your summarized content will appear here.</p>
             </div>
         </div>
 

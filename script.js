@@ -4,11 +4,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileNameSpan = document.getElementById('file-name');
     const summarizeBtn = document.getElementById('summarize-btn');
     const removeFileBtn = document.getElementById('remove-file-btn');
-    const loadingSpinner = document.getElementById('loading-spinner');
+    const aiLoaderContainer = document.getElementById('ai-loader-container');
+    const loadingText = document.getElementById('loading-text');
     const pptLoadingMessage = document.getElementById('ppt-loading-message');
     const summaryOutput = document.getElementById('summary-output');
-    const summaryTextP = summaryOutput.querySelector('p');
+    const summaryTextP = document.getElementById('summary-text');
     const copySummaryBtn = document.getElementById('copy-summary-btn');
+    const clearSummaryBtn = document.getElementById('clear-summary-btn');
     const errorMessage = document.getElementById('error-message');
     const copyTextSpan = document.getElementById('copy-text-span'); 
     
@@ -19,18 +21,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     const showLoading = () => {
-        loadingSpinner.classList.remove('spinner-hidden');
+        // Show AI loader and hide regular content
+        const aiLoader = document.getElementById('ai-loader');
+        aiLoaderContainer.classList.remove('ai-loader-hidden');
+        aiLoader.play(); // Start the animation
+        summaryOutput.classList.add('loading');
+        summaryTextP.style.display = 'none';
+        
+        // Disable UI elements
         summarizeBtn.disabled = true;
         fileInput.disabled = true;
         removeFileBtn.style.display = 'none';
         copySummaryBtn.disabled = true;
-        if (copyTextSpan) {
-            copyTextSpan.style.display = 'none';
-        }
         copySummaryBtn.style.display = 'none';
-        summaryTextP.textContent = 'Summarizing your document';
-        summaryTextP.classList.add('animating-dots');
-        summaryTextP.style.textAlign = 'center';
+        clearSummaryBtn.style.display = 'none';
+        
+        // Update loading text with animation
+        loadingText.textContent = 'Summarizing your document';
+        loadingText.classList.add('animating-dots');
+        
         errorMessage.classList.add('error-hidden');
         summarizeBtn.classList.remove('highlight-animation');
         
@@ -41,20 +50,35 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const hideLoading = () => {
-        loadingSpinner.classList.add('spinner-hidden');
+        // Hide AI loader and restore normal state
+        const aiLoader = document.getElementById('ai-loader');
+        aiLoader.stop(); // Stop the animation
+        aiLoaderContainer.classList.add('ai-loader-hidden');
+        summaryOutput.classList.remove('loading');
+        summaryTextP.style.display = 'block';
+        
         pptLoadingMessage.classList.add('loading-message-hidden');
         summarizeBtn.disabled = !selectedFile;
         fileInput.disabled = false;
         removeFileBtn.style.display = selectedFile ? 'block' : 'none';
         copySummaryBtn.disabled = false;
-        summaryTextP.classList.remove('animating-dots');
+        loadingText.classList.remove('animating-dots');
     };
 
     const showSummary = (summary) => {
+        // Hide AI loader and show summary
+        const aiLoader = document.getElementById('ai-loader');
+        aiLoader.stop(); // Stop the animation
+        aiLoaderContainer.classList.add('ai-loader-hidden');
+        summaryOutput.classList.remove('loading');
+        summaryTextP.style.display = 'block';
+        
         summaryTextP.textContent = summary;
         summaryTextP.style.textAlign = 'justify';
         copySummaryBtn.style.display = 'flex';
+        clearSummaryBtn.style.display = 'flex';
         copySummaryBtn.innerHTML = '<span id="copy-text-span">Copy All</span><i data-lucide="copy"></i>';
+        clearSummaryBtn.innerHTML = '<span id="clear-text-span">Clear</span><i data-lucide="eraser"></i>';
         lucide.createIcons();
         
         const currentCopyTextSpan = copySummaryBtn.querySelector('#copy-text-span');
@@ -63,7 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
             currentCopyTextSpan.style.display = 'inline-block';
         }
         copySummaryBtn.classList.remove('copied');
-        summaryTextP.classList.remove('animating-dots');
     };
 
     const showError = (message) => {
@@ -84,12 +107,20 @@ document.addEventListener('DOMContentLoaded', () => {
         removeFileBtn.classList.remove('visible');
         removeFileBtn.style.display = 'none';
         clearError();
+        
+        // Reset summary container to default state
+        const aiLoader = document.getElementById('ai-loader');
+        aiLoader.stop(); // Stop the animation
+        aiLoaderContainer.classList.add('ai-loader-hidden');
+        summaryOutput.classList.remove('loading');
+        summaryTextP.style.display = 'block';
         summaryTextP.textContent = 'Your summarized content will appear here.';
         summaryTextP.style.textAlign = 'center';
+        
         copySummaryBtn.style.display = 'none';
+        clearSummaryBtn.style.display = 'none';
         summarizeBtn.classList.remove('highlight-animation');
         pptLoadingMessage.classList.add('loading-message-hidden');
-        summaryTextP.classList.remove('animating-dots');
     };
 
     // Event listener for file input change
@@ -113,8 +144,18 @@ document.addEventListener('DOMContentLoaded', () => {
             removeFileBtn.classList.add('visible');
             removeFileBtn.style.display = 'block';
             clearError();
+            
+            // Reset summary container to default state when new file selected
+            const aiLoader = document.getElementById('ai-loader');
+            aiLoader.stop(); // Stop the animation
+            aiLoaderContainer.classList.add('ai-loader-hidden');
+            summaryOutput.classList.remove('loading');
+            summaryTextP.style.display = 'block';
             summaryTextP.textContent = 'Your summarized content will appear here.';
+            summaryTextP.style.textAlign = 'center';
+            
             copySummaryBtn.style.display = 'none';
+            clearSummaryBtn.style.display = 'none';
             summarizeBtn.classList.add('highlight-animation');
         } else {
             resetFileInput();
@@ -175,20 +216,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     copySummaryBtn.addEventListener('click', async () => {
-        const summaryText = summaryOutput.querySelector('p').textContent;
+        const summaryText = summaryTextP.textContent;
         const currentCopyTextSpan = copySummaryBtn.querySelector('#copy-text-span'); 
         try {
             await navigator.clipboard.writeText(summaryText);
-            const icon = copySummaryBtn.querySelector('i');
-            icon.setAttribute('data-lucide', 'check');
-            lucide.createIcons();
+            
+            // Replace icon with check mark
+            const iconContainer = copySummaryBtn.querySelector('[data-lucide], svg');
+            if (iconContainer) {
+                if (iconContainer.tagName === 'svg') {
+                    // Replace SVG with new i element
+                    const newIcon = document.createElement('i');
+                    newIcon.setAttribute('data-lucide', 'check');
+                    iconContainer.parentNode.replaceChild(newIcon, iconContainer);
+                } else {
+                    // It's still an i element
+                    iconContainer.setAttribute('data-lucide', 'check');
+                }
+                lucide.createIcons();
+            }
+            
             if (currentCopyTextSpan) {
                 currentCopyTextSpan.textContent = 'Copied!';
             }
             copySummaryBtn.classList.add('copied');
+            
             setTimeout(() => {
-                icon.setAttribute('data-lucide', 'copy');
-                lucide.createIcons();
+                // Replace back to copy icon
+                const checkIcon = copySummaryBtn.querySelector('[data-lucide], svg');
+                if (checkIcon) {
+                    if (checkIcon.tagName === 'svg') {
+                        const newIcon = document.createElement('i');
+                        newIcon.setAttribute('data-lucide', 'copy');
+                        checkIcon.parentNode.replaceChild(newIcon, checkIcon);
+                    } else {
+                        checkIcon.setAttribute('data-lucide', 'copy');
+                    }
+                    lucide.createIcons();
+                }
+                
                 if (currentCopyTextSpan) {
                     currentCopyTextSpan.textContent = 'Copy All';
                 }
@@ -201,8 +267,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    clearSummaryBtn.addEventListener('click', () => {
+        // Clear the summary and reset to default state
+        const aiLoader = document.getElementById('ai-loader');
+        aiLoader.stop(); // Stop the animation
+        aiLoaderContainer.classList.add('ai-loader-hidden');
+        summaryOutput.classList.remove('loading');
+        summaryTextP.style.display = 'block';
+        summaryTextP.textContent = 'Your summarized content will appear here.';
+        summaryTextP.style.textAlign = 'center';
+        copySummaryBtn.style.display = 'none';
+        clearSummaryBtn.style.display = 'none';
+        
+        // Reset copy button state
+        copySummaryBtn.classList.remove('copied');
+        const currentCopyTextSpan = copySummaryBtn.querySelector('#copy-text-span');
+        if (currentCopyTextSpan) {
+            currentCopyTextSpan.textContent = 'Copy All';
+        }
+        
+        // Reset copy button icon
+        const copyIcon = copySummaryBtn.querySelector('[data-lucide], svg');
+        if (copyIcon) {
+            if (copyIcon.tagName === 'svg') {
+                const newIcon = document.createElement('i');
+                newIcon.setAttribute('data-lucide', 'copy');
+                copyIcon.parentNode.replaceChild(newIcon, copyIcon);
+            } else {
+                copyIcon.setAttribute('data-lucide', 'copy');
+            }
+            lucide.createIcons();
+        }
+    });
+
     resetFileInput();
     
     // Initialize Lucide icons
     lucide.createIcons();
+    
+    // Initialize Vanta.js animated background
+    VANTA.HALO({
+        el: "#vanta-bg",
+        mouseControls: true,
+        touchControls: true,
+        gyroControls: false,
+        minHeight: window.innerHeight,
+        minWidth: window.innerWidth,
+        xOffset: 0.10,  // Slight right offset to counteract left bias
+        yOffset: 0.10,  // Slight down offset for balance
+        size: 1.50,     // Large size for full coverage
+        baseColor: 0x5790ab,     // Your primary accent color
+        backgroundColor: 0x072d44, // Your body background
+        amplitudeFactor: 3.00,   // Maximum amplitude for all-around spread
+        speed: 0.50              // Slower for smoother movement
+    });
 });
