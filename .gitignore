@@ -1,11 +1,13 @@
 # .env file for local environment variables
 .env
+.env.local
 
 # Node.js modules
 node_modules/
 
 # Vercel deployment cache and local configuration
 .vercel/
+.vercel
 
 # Log files
 *.log

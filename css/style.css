@@ -327,32 +327,138 @@ button#summarize-btn.highlight-animation::before {
 }
 
 #summary-output {
-    background-color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.65);
     border: 1px solid var(--border-dark);
     border-radius: 12px;
-    padding: 25px;
-    padding-top: 5px;
+    padding: 20px;
     min-height: 180px;
-    text-align: justify;
-    white-space: pre-wrap;
-    word-wrap: break-word;
     box-shadow: inset 0 2px 5px var(--shadow-light-inset);
     color: var(--text-on-card);
-    line-height: 1.8;
     position: relative;
     transition: min-height 0.3s ease;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 #summary-output.loading {
     min-height: 280px;
 }
 
-#summary-output p {
-    margin: 0;
-    padding-top: 0;
-    color: var(--text-on-card);
+/* Placeholder state */
+.summary-text-placeholder {
+    padding: 45px 20px 20px 20px;
     text-align: center;
+    color: var(--text-subtle-on-card);
+    font-size: 1.05em;
     line-height: 1.8;
+    margin: 0;
+}
+
+/* Rendered Markdown output */
+.summary-text-rendered {
+    padding: 35px 10px 10px 10px;
+    text-align: left;
+    color: var(--body-bg);
+    line-height: 1.75;
+    font-size: 1.02em;
+}
+
+.summary-text-rendered h1,
+.summary-text-rendered h2,
+.summary-text-rendered h3,
+.summary-text-rendered h4 {
+    color: var(--tertiary-dark-blue);
+    font-weight: 700;
+    margin-top: 24px;
+    margin-bottom: 10px;
+    line-height: 1.35;
+    text-align: left;
+}
+
+.summary-text-rendered h3 {
+    font-size: 1.25em;
+    padding-bottom: 6px;
+    border-bottom: 1.5px solid rgba(87, 144, 171, 0.35);
+}
+
+.summary-text-rendered h3:first-child,
+.summary-text-rendered h2:first-child {
+    margin-top: 0;
+}
+
+.summary-text-rendered h4 {
+    font-size: 1.1em;
+    color: var(--primary-accent);
+}
+
+.summary-text-rendered p {
+    margin: 0 0 14px 0;
+    line-height: 1.75;
+    color: var(--body-bg);
+    text-align: left;
+}
+
+.summary-text-rendered ul,
+.summary-text-rendered ol {
+    margin: 8px 0 16px 0;
+    padding-left: 24px;
+    text-align: left;
+}
+
+.summary-text-rendered li {
+    margin-bottom: 8px;
+    line-height: 1.7;
+    color: var(--body-bg);
+}
+
+.summary-text-rendered li::marker {
+    color: var(--primary-accent);
+    font-weight: bold;
+}
+
+.summary-text-rendered strong,
+.summary-text-rendered b {
+    color: var(--tertiary-dark-blue);
+    font-weight: 700;
+}
+
+.summary-text-rendered blockquote {
+    margin: 14px 0;
+    padding: 10px 16px;
+    background: rgba(87, 144, 171, 0.12);
+    border-left: 4px solid var(--primary-accent);
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    color: var(--tertiary-dark-blue);
+}
+
+.summary-text-rendered table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.95em;
+}
+
+.summary-text-rendered th,
+.summary-text-rendered td {
+    padding: 10px 14px;
+    border: 1px solid rgba(6, 68, 105, 0.2);
+    text-align: left;
+}
+
+.summary-text-rendered th {
+    background: rgba(87, 144, 171, 0.2);
+    font-weight: 600;
+    color: var(--tertiary-dark-blue);
+}
+
+.summary-text-rendered code {
+    background: rgba(6, 68, 105, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+    color: var(--tertiary-dark-blue);
 }
 
 /* Copy & Clear Button Base Styling */

@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyTextSpan = document.getElementById('copy-text-span'); 
     
     let selectedFile = null;
+    let currentRawSummary = '';
 
     const MAX_FILE_SIZE_MB_FRONTEND = 4.4;
     const MAX_FILE_SIZE_BYTES_FRONTEND = MAX_FILE_SIZE_MB_FRONTEND * 1024 * 1024;
@@ -66,15 +67,29 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showSummary = (summary) => {
+        currentRawSummary = summary;
+        
         // Hide AI loader and show summary
         const aiLoader = document.getElementById('ai-loader');
         aiLoader.stop(); // Stop the animation
         aiLoaderContainer.classList.add('ai-loader-hidden');
         summaryOutput.classList.remove('loading');
         summaryTextP.style.display = 'block';
+        summaryTextP.classList.remove('summary-text-placeholder');
+        summaryTextP.classList.add('summary-text-rendered');
+
+        // Parse Markdown safely
+        let formattedHtml = '';
+        if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+            const rawHtml = marked.parse(summary, { breaks: true, gfm: true });
+            formattedHtml = DOMPurify.sanitize(rawHtml);
+        } else if (typeof marked !== 'undefined') {
+            formattedHtml = marked.parse(summary, { breaks: true, gfm: true });
+        } else {
+            formattedHtml = summary.replace(/\n/g, '<br>');
+        }
         
-        summaryTextP.textContent = summary;
-        summaryTextP.style.textAlign = 'justify';
+        summaryTextP.innerHTML = formattedHtml;
         copySummaryBtn.style.display = 'flex';
         clearSummaryBtn.style.display = 'flex';
         copySummaryBtn.innerHTML = '<span id="copy-text-span">Copy All</span><i data-lucide="copy"></i>';
@@ -101,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const resetFileInput = () => {
         selectedFile = null;
+        currentRawSummary = '';
         fileInput.value = '';
         fileNameSpan.textContent = 'No file chosen';
         summarizeBtn.disabled = true;
@@ -114,8 +130,9 @@ document.addEventListener('DOMContentLoaded', () => {
         aiLoaderContainer.classList.add('ai-loader-hidden');
         summaryOutput.classList.remove('loading');
         summaryTextP.style.display = 'block';
-        summaryTextP.textContent = 'Your summarized content will appear here.';
-        summaryTextP.style.textAlign = 'center';
+        summaryTextP.innerHTML = 'Your summarized content will appear here.';
+        summaryTextP.classList.remove('summary-text-rendered');
+        summaryTextP.classList.add('summary-text-placeholder');
         
         copySummaryBtn.style.display = 'none';
         clearSummaryBtn.style.display = 'none';
@@ -151,8 +168,9 @@ document.addEventListener('DOMContentLoaded', () => {
             aiLoaderContainer.classList.add('ai-loader-hidden');
             summaryOutput.classList.remove('loading');
             summaryTextP.style.display = 'block';
-            summaryTextP.textContent = 'Your summarized content will appear here.';
-            summaryTextP.style.textAlign = 'center';
+            summaryTextP.innerHTML = 'Your summarized content will appear here.';
+            summaryTextP.classList.remove('summary-text-rendered');
+            summaryTextP.classList.add('summary-text-placeholder');
             
             copySummaryBtn.style.display = 'none';
             clearSummaryBtn.style.display = 'none';
@@ -216,10 +234,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     copySummaryBtn.addEventListener('click', async () => {
-        const summaryText = summaryTextP.textContent;
+        const textToCopy = currentRawSummary || summaryTextP.innerText || summaryTextP.textContent;
         const currentCopyTextSpan = copySummaryBtn.querySelector('#copy-text-span'); 
         try {
-            await navigator.clipboard.writeText(summaryText);
+            await navigator.clipboard.writeText(textToCopy);
             
             // Replace icon with check mark
             const iconContainer = copySummaryBtn.querySelector('[data-lucide], svg');
@@ -269,13 +287,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     clearSummaryBtn.addEventListener('click', () => {
         // Clear the summary and reset to default state
+        currentRawSummary = '';
         const aiLoader = document.getElementById('ai-loader');
         aiLoader.stop(); // Stop the animation
         aiLoaderContainer.classList.add('ai-loader-hidden');
         summaryOutput.classList.remove('loading');
         summaryTextP.style.display = 'block';
-        summaryTextP.textContent = 'Your summarized content will appear here.';
-        summaryTextP.style.textAlign = 'center';
+        summaryTextP.innerHTML = 'Your summarized content will appear here.';
+        summaryTextP.classList.remove('summary-text-rendered');
+        summaryTextP.classList.add('summary-text-placeholder');
         copySummaryBtn.style.display = 'none';
         clearSummaryBtn.style.display = 'none';
         

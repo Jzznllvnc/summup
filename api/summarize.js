@@ -18,13 +18,13 @@ if (!CLOUDCONVERT_API_KEY) {
 
 // Initialize AI and CloudConvert clients
 const genAI = new GoogleGenerativeAI(API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
 const generationConfig = {
     temperature: 0.2,
     topP: 0.95,
     topK: 64,
-    maxOutputTokens: 800,
+    maxOutputTokens: 4096,
     responseMimeType: "text/plain",
 };
 
@@ -46,6 +46,26 @@ const safetySettings = [
         threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
     },
 ];
+
+function getSummarizationPrompt(fileCategory = 'document') {
+    return `You are an elite, highly analytical summarization AI. Your objective is to produce an exceptionally accurate, coherent, thorough, and insightful summary of the provided ${fileCategory}.
+
+CORE ACCURACY & FIDELITY DIRECTIVES:
+1. STRICT FACTUAL GROUNDING: Rely exclusively on the facts, data, arguments, and conclusions directly present in the source. Do not assume, extrapolate, or introduce unsupported external information.
+2. PRESERVE SPECIFICS: Faithfully retain exact numbers, percentages, dates, proper names, metrics, locations, and specialized terminology without generalizing or omitting critical details.
+3. CONTEXT & NUANCE PRESERVATION: Accurately capture tone, context, caveats, methodologies, and relationships between ideas as conveyed by the source.
+4. STANDALONE CLARITY: The summary must be detailed and self-contained so that the reader gains full comprehension without needing to reference the original document.
+
+DYNAMIC STRUCTURE & FORMATTING (ADAPTIVE TO DOCUMENT CONTENT):
+- DO NOT force rigid, generic cookie-cutter headers (avoid static, repetitive template categories).
+- Dynamically tailor the structure, depth, and section headings (###) to naturally fit the document's specific subject matter, type, and complexity (e.g., technical reports, research papers, legal/business documents, meeting minutes, presentations, articles, or notes).
+- Open with a clear, concise introductory synthesis capturing the document's core purpose, context, and overarching thesis.
+- Group detailed insights under natural, context-specific topical headings that reflect the actual content.
+- Use structured bullet points (-) with **bold descriptive lead-ins** for clarity and effortless scanning.
+- Accurately integrate key figures, dates, and quantitative data within their relevant context.
+- Conclude naturally with the major conclusions, key takeaways, recommendations, or next steps found in the source.
+- Format cleanly in professional GitHub-flavored Markdown.`;
+}
 
 async function fileToGenerativePart(filePath, mimeType) {
     try {
@@ -124,20 +144,10 @@ module.exports = async (req, res) => {
         if (mimeType.startsWith('text/')) {
             fileContentForAI = await fs.readFile(fileInfo.filepath, 'utf8');
 
-            let summarizationPrompt = `
-                Summarize the following document clearly and thoroughly.
-
-                1. START WITH A BRIEF OVERVIEW explaining the main objective, topic, or theme of the document.
-                2. FOLLOW WITH KEY DETAILS presented as a list using hyphens (-). IF THE DOCUMENT HAS SECTIONS (e.g., INTRODUCTION, ANALYSIS, CONCLUSION), REFLECT THAT STRUCTURE IN THE SUMMARY.
-                3. USE ALL CAPITAL LETTERS to emphasize important facts, names, figures, and key terms.
-                4. DO NOT USE ASTERISKS, BOLD MARKDOWN, OR DOUBLE ASTERISK FORMATTING FOR HEADINGS OR EMPHASIS. USE ALL CAPITAL LETTERS INSTEAD.
-                5. INCLUDE RELEVANT NAMES, DATES, LOCATIONS, STATISTICS, AND TERMINOLOGY EXACTLY AS STATED in the source when appropriate.
-                6. AVOID GENERALIZING—include specific facts and supporting details that clarify the summary.
-                7. IF THERE ARE INSIGHTS, RECOMMENDATIONS, OR CONCLUSIONS, PLACE THEM UNDER A FINAL BULLET CALLED "INSIGHTS" or "CONCLUSION".
-                8. THE SUMMARY SHOULD STAND ALONE—even if the reader does not have access to the original file. Be thorough, concise, and preserve meaning.`;
+            const summarizationPrompt = getSummarizationPrompt('text document');
 
             const result = await model.generateContent({
-                contents: [{ role: "user", parts: [{ text: `${summarizationPrompt}\n\n${fileContentForAI}` }] }],
+                contents: [{ role: "user", parts: [{ text: `${summarizationPrompt}\n\nDOCUMENT CONTENT:\n${fileContentForAI}` }] }],
                 generationConfig,
                 safetySettings,
             });
@@ -155,18 +165,7 @@ module.exports = async (req, res) => {
             }
 
             const imagePart = await fileToGenerativePart(fileInfo.filepath, mimeType);
-
-            let summarizationPrompt = `
-                Summarize the content of this document/image as clearly and thoroughly as possible.
-
-                1. START WITH a BRIEF PARAGRAPH that explains the overall purpose, topic, or focus of the document/image.
-                2. THEN, LIST THE MOST IMPORTANT POINTS using hyphens (-) instead of asterisks.
-                3. USE ALL CAPITAL LETTERS for emphasis when highlighting key data or important terms.
-                4. DO NOT USE ASTERISKS, BOLD MARKDOWN, OR DOUBLE ASTERISK FORMATTING FOR HEADINGS OR EMPHASIS. USE ALL CAPITAL LETTERS INSTEAD.
-                5. INCLUDE NUMERIC DATA, LABELS, NAMES, OR TITLES when available, instead of generalizing them.
-                6. DO NOT OMIT relevant information, especially metrics, labels, section headers, or details that provide context.
-                7. IF SECTIONS OR CATEGORIES are present, GROUP bullet points accordingly with subheadings for clarity.
-                8. WRITE AS IF THE READER HAS NOT SEEN THE ORIGINAL FILE and needs a complete but concise summary. Be precise, comprehensive, and maintain clarity.`;
+            const summarizationPrompt = getSummarizationPrompt(mimeType === 'application/pdf' ? 'PDF document' : 'image document');
 
             const result = await model.generateContent({
                 contents: [{ role: "user", parts: [imagePart, { text: summarizationPrompt }] }],
@@ -188,20 +187,10 @@ module.exports = async (req, res) => {
                 return res.status(400).json({ error: 'Could not extract text from DOCX file. It might be empty or malformed.' });
             }
 
-            let summarizationPrompt = `
-                Summarize the following document clearly and thoroughly.
-
-                1. START WITH A BRIEF OVERVIEW explaining the main objective, topic, or theme of the document.
-                2. FOLLOW WITH KEY DETAILS presented as a list using hyphens (-). IF THE DOCUMENT HAS SECTIONS (e.g., INTRODUCTION, ANALYSIS, CONCLUSION), REFLECT THAT STRUCTURE IN THE SUMMARY.
-                3. USE ALL CAPITAL LETTERS to emphasize important facts, names, figures, and key terms.
-                4. DO NOT USE ASTERISKS, BOLD MARKDOWN, OR DOUBLE ASTERISK FORMATTING FOR HEADINGS OR EMPHASIS. USE ALL CAPITAL LETTERS INSTEAD.
-                5. INCLUDE RELEVANT NAMES, DATES, LOCATIONS, STATISTICS, AND TERMINOLOGY EXACTLY AS STATED in the source when appropriate.
-                6. AVOID GENERALIZING—include specific facts and supporting details that clarify the summary.
-                7. IF THERE ARE INSIGHTS, RECOMMENDATIONS, OR CONCLUSIONS, PLACE THEM UNDER A FINAL BULLET CALLED "INSIGHTS" or "CONCLUSION".
-                8. THE SUMMARY SHOULD STAND ALONE—even if the reader does not have access to the original file. Be thorough, concise, and preserve meaning.`;
+            const summarizationPrompt = getSummarizationPrompt('Word (DOCX) document');
 
             const result = await model.generateContent({
-                contents: [{ role: "user", parts: [{ text: `${summarizationPrompt}\n\n${fileContentForAI}` }] }],
+                contents: [{ role: "user", parts: [{ text: `${summarizationPrompt}\n\nDOCUMENT CONTENT:\n${fileContentForAI}` }] }],
                 generationConfig,
                 safetySettings,
             });
@@ -271,17 +260,7 @@ module.exports = async (req, res) => {
                     },
                 };
 
-                let summarizationPrompt = `
-                    Summarize the content of this presentation (now in PDF form) as clearly and thoroughly as possible.
-
-                    1. START WITH a BRIEF PARAGRAPH that explains the overall purpose, topic, or focus of the document/image.
-                    2. THEN, LIST THE MOST IMPORTANT POINTS using hyphens (-) instead of asterisks.
-                    3. USE ALL CAPITAL LETTERS for emphasis when highlighting key data or important terms.
-                    4. DO NOT USE ASTERISKS, BOLD MARKDOWN, OR DOUBLE ASTERISK FORMATTING FOR HEADINGS OR EMPHASIS. USE ALL CAPITAL LETTERS INSTEAD.
-                    5. INCLUDE NUMERIC DATA, LABELS, NAMES, OR TITLES from slides when available, instead of generalizing them.
-                    6. DO NOT OMIT relevant information, especially metrics, labels, section headers, or details that provide context from the slides.
-                    7. IF SECTIONS OR CATEGORIES are present, GROUP bullet points accordingly with subheadings for clarity.
-                    8. WRITE AS IF THE READER HAS NOT SEEN THE ORIGINAL PRESENTATION and needs a complete but concise summary. Be precise, comprehensive, and maintain clarity.`;
+                const summarizationPrompt = getSummarizationPrompt('presentation slide deck');
 
                 const result = await model.generateContent({
                     contents: [{ role: "user", parts: [pdfPart, { text: summarizationPrompt }] }],
